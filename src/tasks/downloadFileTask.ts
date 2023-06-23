@@ -1,8 +1,9 @@
 import { NewMessageEvent } from "telegram/events/index.js";
 import downloadFile from "../fns/downloadFile.js";
-import formatBytes from "../fns/formatBytes.js";
 import bot from "../bot.js";
 import uploadFile from "../fns/uploadFile.js";
+import globalState from "../services/globalState.js";
+import { getFileName } from "../fns/getFileName.js";
 
 export default async function downloadFileTask(event: NewMessageEvent) {
   const message = event.message;
@@ -15,34 +16,21 @@ export default async function downloadFileTask(event: NewMessageEvent) {
   if (!url) {
     return message.reply({ message: "Mana linknya cuy" });
   }
-  const updateDelay = 3000;
   const replyMessage = await message.reply({ message: "Terminal Running" });
-  let inDebounce = false;
+  const tasks = globalState.tasks;
+  const fileName = getFileName(url);
 
-  if (!replyMessage) return;
+  await globalState.progressMessage?.delete({ revoke: true });
+  globalState.progressMessage = replyMessage;
+  tasks.set(fileName, { fileName, type: "download", currentState: 0, total: 0 });
 
   const filePath = await downloadFile(url, (chunkLength, downloaded, total) => {
-    if (inDebounce) return;
-    inDebounce = true;
-    setTimeout(() => (inDebounce = false), updateDelay);
-
-    try {
-      replyMessage.edit({
-        text: `Downloading ${formatBytes(downloaded)} / ${formatBytes(total)}`,
-      });
-    } catch {}
+    tasks.set(fileName, { fileName, type: "download", currentState: downloaded, total });
   });
-  const uploadedFile = await uploadFile(filePath, (chunkLength, downloaded, total) => {
-    if (inDebounce) return;
-    inDebounce = true;
-    setTimeout(() => (inDebounce = false), updateDelay);
-
-    try {
-      replyMessage.edit({
-        text: `Uploading ${formatBytes(downloaded)} / ${formatBytes(total)}`,
-      });
-    } catch {}
+  const uploadedFile = await uploadFile(filePath, (chunkLength, uploaded, total) => {
+    tasks.set(fileName, { fileName, type: "upload", currentState: uploaded, total });
   });
-  await replyMessage.delete({ revoke: true });
+  tasks.delete(fileName);
+
   await bot.sendFile(event.chatId, { file: uploadedFile });
 }

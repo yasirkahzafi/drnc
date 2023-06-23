@@ -1,12 +1,10 @@
 import fs from "node:fs";
 import https from "node:https";
 import http from "node:http";
+import { getFileName } from "./getFileName.js";
 
 type ProgressCallback = (chunkLength: number, downloaded: number, total: number) => void;
 
-function getFileName(url: string) {
-  return decodeURIComponent(new URL(url).pathname.split("/").pop()!);
-}
 export default async function downloadFile(url: string, progressCallback?: ProgressCallback): Promise<string> {
   const urlProtocol = new URL(url).protocol;
   const request = urlProtocol === "https:" ? https : http;
