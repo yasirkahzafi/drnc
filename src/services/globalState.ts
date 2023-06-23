@@ -10,7 +10,7 @@ interface GlobalState {
 const globalState: GlobalState = {
   startTime: Date.now(),
   tasks: new Map(),
-  progressDelay: 3000,
+  progressDelay: 5000,
 };
 
 export default globalState;
