@@ -4,6 +4,7 @@ import bot from "../bot.js";
 import uploadFile from "../fns/uploadFile.js";
 import globalState from "../services/globalState.js";
 import { getFileName } from "../fns/getFileName.js";
+import getProgressText from "../fns/getProgressText.js";
 
 export default async function downloadFileTask(event: NewMessageEvent) {
   const message = event.message;
@@ -16,13 +17,14 @@ export default async function downloadFileTask(event: NewMessageEvent) {
   if (!url) {
     return message.reply({ message: "Mana linknya cuy" });
   }
-  const replyMessage = await message.reply({ message: "Terminal Running" });
   const tasks = globalState.tasks;
   const fileName = getFileName(url);
 
   await globalState.progressMessage?.delete({ revoke: true });
+  tasks.set(fileName, { fileName, type: "prepare", currentState: 0, total: 0 });
+
+  const replyMessage = await message.reply({ message: getProgressText() });
   globalState.progressMessage = replyMessage;
-  tasks.set(fileName, { fileName, type: "download", currentState: 0, total: 0 });
 
   const filePath = await downloadFile(url, (chunkLength, downloaded, total) => {
     tasks.set(fileName, { fileName, type: "download", currentState: downloaded, total });
