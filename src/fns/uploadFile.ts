@@ -49,6 +49,7 @@ export default async function uploadFile(
     name: fileName,
   });
   fs.closeSync(file);
+  fs.rmSync(filePath);
 
   return uploadedFile;
 }
